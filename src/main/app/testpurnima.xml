@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:sfdc="http://www.mulesoft.org/schema/mule/sfdc" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
+	xmlns:ws="http://www.mulesoft.org/schema/mule/ws" xmlns:cxf="http://www.mulesoft.org/schema/mule/cxf"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/cxf http://www.mulesoft.org/schema/mule/cxf/current/mule-cxf.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/ws http://www.mulesoft.org/schema/mule/ws/current/mule-ws.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.mulesoft.org/schema/mule/sfdc http://www.mulesoft.org/schema/mule/sfdc/current/mule-sfdc.xsd">
+	<http:listener-config name="listener-config" host="${http.host}" port="${http.port}" doc:name="HTTP Listener Configuration" />
+	<!-- <ws:consumer-config name="Web_Service_Consumerweather" wsdlLocation="http://www.webservicex.com/globalweather.asmx?WSDL"
+	service="GlobalWeather" port="GlobalWeatherSoap" serviceAddress="http://www.webservicex.com/globalweather.asmx"	doc:name="Web Service Consumer" />
+    --> <cxf:configuration name="CXF_Configuration" enableMuleSoapHeaders="false" initializeStaticBusInstance="true" doc:name="CXF Configuration"/>
+    <sfdc:config name="Salesforce__Basic_Authentication1" username="purnima@gmail.in" password="1234" securityToken="P0uFrbOXIMEragJz4MkvJxPf" doc:name="Salesforce: Basic Authentication"/>	
+	
+	<!-- Start web services example -->
+	
+	<flow name="create-soap-service">
+		<http:listener config-ref="listener-config" path="createsoapwebservice" doc:name="HTTP" />
+		<cxf:jaxws-service serviceClass="testpurnima.HelloWorld" doc:name="CXF" configuration-ref="CXF_Configuration"/>
+		<component class="testpurnima.HelloWorldImpl" doc:name="Java" />	  
+	</flow>
+	
+	<flow name="consume-soap-using-soap">
+		<http:listener config-ref="listener-config" path="/consumesoapwebservice" doc:name="HTTP" />
+		<cxf:jaxws-service serviceClass="testpurnima.HelloWorld" doc:name="CXF" configuration-ref="CXF_Configuration"/>
+		<!-- <component class="testpurnima.HelloWorldImpl" doc:name="Java" /> -->
+		<set-payload value="#['INDIA']" doc:name="Set Payload"/>       
+        <set-variable variableName="CountryName" value="#[payload]" doc:name="Get Cities by Country" />
+		<dw:transform-message doc:name="Transform Message">
+			<dw:set-payload><![CDATA[%dw 1.0
+%output application/xml
+%namespace ns0 http://www.webserviceX.NET
+---
+{
+        ns0#GetCitiesByCountry: {
+                ns0#CountryName: flowVars.CountryName as :string
+        }
+}]]></dw:set-payload>
+		</dw:transform-message>
+	    <remove-variable variableName="method" doc:name="Variable"/>
+		<logger level="INFO" doc:name="Logger" message="logger5: #[message]"/>
+		<!-- <ws:consumer config-ref="Web_Service_Consumerweather" doc:name="Web Service Consumer" operation="GetCitiesByCountry" />
+         --><mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
+        <!-- <dw:transform-message doc:name="XML to JSON" >
+                <dw:input-payload doc:sample="ListInventoryResponse.xml"/>
+                <dw:set-payload><![CDATA[%dw 1.0
+    %output application/xml
+    %namespace xsi http://www.w3.org/2001/XMLSchema-instance
+    %namespace xsd http://www.w3.org/2001/XMLSchema
+    %namespace soap http://schemas.xmlsoap.org/soap/envelope/
+  
+    soap#Envelope : {
+
+    soap#Body:payload
+
+    }]]></dw:set-payload>
+      </dw:transform-message>  -->     
+        <logger level="INFO" doc:name="Logger" message="logger6: #[payload]"/>  
+	</flow>
+	
+	<flow name="consuming-soap-usingrest">
+		<http:listener config-ref="listener-config" path="/consumesoapusingrest"
+			doc:name="HTTP" />
+		<set-variable variableName="CountryName" value="#['INDIA']" doc:name="Get Cities by Country" />
+		<dw:transform-message doc:name="Transform Message">
+			<dw:set-payload><![CDATA[%dw 1.0
+%output application/xml
+%namespace ns0 http://www.webserviceX.NET
+---
+{
+        ns0#GetCitiesByCountry: {
+                ns0#CountryName: flowVars.CountryName as :string
+        }
+}]]></dw:set-payload>
+		</dw:transform-message>
+		<logger level="INFO" doc:name="Logger" message="logger3: #[message]"/>
+		<!-- <ws:consumer config-ref="Web_Service_Consumerweather" doc:name="Web Service Consumer" operation="GetCitiesByCountry" />
+		 --><logger level="INFO" doc:name="Logger" message="logger4: #[message]"/>
+	</flow>
+    <flow name="testpurnimaFlow">
+        <http:listener config-ref="listener-config" path="/testsfdc" doc:name="HTTP"/>
+        <set-payload value="hello" doc:name="Set Payload"/>
+        <sfdc:query config-ref="Salesforce__Basic_Authentication1" query="dsql:SELECT AccountNumber FROM Account" doc:name="Salesforce" fetchSize="1"/>
+        <foreach doc:name="For Each">
+            <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+            <logger message="meassage1#[payload]" level="INFO" doc:name="Logger"/>
+        </foreach>
+        <logger message="message2#[payload]" level="INFO" doc:name="Logger"/>
+    </flow>
+
+   <!-- End web services example -->
+   
+   <!-- Start web services example -->
+   
+   <!-- End web services example -->
+   
+</mule>
